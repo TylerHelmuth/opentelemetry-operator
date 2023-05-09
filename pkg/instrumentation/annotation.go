@@ -23,12 +23,17 @@ import (
 const (
 	// annotationInjectJava indicates whether java auto-instrumentation should be injected or not.
 	// Possible values are "true", "false" or "<Instrumentation>" name.
-	annotationInjectJava          = "instrumentation.opentelemetry.io/inject-java"
-	annotationInjectNodeJS        = "instrumentation.opentelemetry.io/inject-nodejs"
-	annotationInjectPython        = "instrumentation.opentelemetry.io/inject-python"
-	annotationInjectDotNet        = "instrumentation.opentelemetry.io/inject-dotnet"
-	annotationInjectSdk           = "instrumentation.opentelemetry.io/inject-sdk"
-	annotationInjectContainerName = "instrumentation.opentelemetry.io/container-names"
+	annotationInjectJava                = "instrumentation.opentelemetry.io/inject-java"
+	annotationInjectNodeJS              = "instrumentation.opentelemetry.io/inject-nodejs"
+	annotationInjectPython              = "instrumentation.opentelemetry.io/inject-python"
+	annotationInjectDotNet              = "instrumentation.opentelemetry.io/inject-dotnet"
+	annotationInjectSdk                 = "instrumentation.opentelemetry.io/inject-sdk"
+	annotationInjectContainerName       = "instrumentation.opentelemetry.io/container-names"
+	annotationInjectJavaContainerName   = "instrumentation.opentelemetry.io/java-container-names"
+	annotationInjectNodeJSContainerName = "instrumentation.opentelemetry.io/nodejs-container-names"
+	annotationInjectPythonContainerName = "instrumentation.opentelemetry.io/python-container-names"
+	annotationInjectDotNetContainerName = "instrumentation.opentelemetry.io/dotnet-container-names"
+	annotationInjectSDKContainerName    = "instrumentation.opentelemetry.io/sdk-container-names"
 )
 
 // annotationValue returns the effective annotationInjectJava value, based on the annotations from the pod and namespace.
@@ -61,4 +66,14 @@ func annotationValue(ns metav1.ObjectMeta, pod metav1.ObjectMeta, annotation str
 	// by now, the pod annotation is 'true', and the namespace annotation is either true or an instance name
 	// so, the namespace annotation can be used
 	return nsAnnValue
+}
+
+func hasLangSpecificContainers(ns metav1.ObjectMeta, pod metav1.ObjectMeta) bool {
+	targetJavaContainers := annotationValue(ns, pod, annotationInjectJavaContainerName)
+	targetNodeJSContainers := annotationValue(ns, pod, annotationInjectNodeJSContainerName)
+	targetPythonContainers := annotationValue(ns, pod, annotationInjectPythonContainerName)
+	targetDotNetContainers := annotationValue(ns, pod, annotationInjectDotNetContainerName)
+	targetSDKContainers := annotationValue(ns, pod, annotationInjectSDKContainerName)
+
+	return targetJavaContainers != "" || targetNodeJSContainers != "" || targetPythonContainers != "" || targetDotNetContainers != "" || targetSDKContainers != ""
 }

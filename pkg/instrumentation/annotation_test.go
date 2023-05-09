@@ -140,3 +140,217 @@ func TestEffectiveAnnotationValue(t *testing.T) {
 		})
 	}
 }
+
+func Test_hasLangSpecificContainers(t *testing.T) {
+	for _, tt := range []struct {
+		desc     string
+		expected bool
+		pod      corev1.Pod
+		ns       corev1.Namespace
+	}{
+		{
+			"no language specific containers",
+			false,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectContainerName: "myapp",
+					},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+		},
+		{
+			"java container",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectJavaContainerName: "myapp",
+					},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+		},
+		{
+			"nodejs container",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectNodeJSContainerName: "myapp",
+					},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+		},
+		{
+			"python container",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectPythonContainerName: "myapp",
+					},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+		},
+		{
+			"dotnet container",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectDotNetContainerName: "myapp",
+					},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+		},
+		{
+			"sdk container",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectSDKContainerName: "myapp",
+					},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+		},
+		{
+			"java ns",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectJavaContainerName: "myapp",
+					},
+				},
+			},
+		},
+		{
+			"nodejs ns",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectNodeJSContainerName: "myapp",
+					},
+				},
+			},
+		},
+		{
+			"python ns",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectPythonContainerName: "myapp",
+					},
+				},
+			},
+		},
+		{
+			"dotnet ns",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectDotNetContainerName: "myapp",
+					},
+				},
+			},
+		},
+		{
+			"sdk ns",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectSDKContainerName: "myapp",
+					},
+				},
+			},
+		},
+		{
+			"multiple",
+			true,
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectJavaContainerName:   "myjavaapp",
+						annotationInjectPythonContainerName: "mypythonapp",
+					},
+				},
+			},
+			corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						annotationInjectDotNetContainerName: "mydotnetapp",
+						annotationInjectSDKContainerName:    "mysdkapp",
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tt.desc, func(t *testing.T) {
+			// test
+			annValue := hasLangSpecificContainers(tt.ns.ObjectMeta, tt.pod.ObjectMeta)
+
+			// verify
+			assert.Equal(t, tt.expected, annValue)
+		})
+	}
+}

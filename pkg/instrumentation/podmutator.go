@@ -17,6 +17,7 @@ package instrumentation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -142,15 +143,47 @@ func (pm *instPodMutator) Mutate(ctx context.Context, ns corev1.Namespace, pod c
 
 	// We retrieve the annotation for podname
 	var targetContainers = annotationValue(ns.ObjectMeta, pod.ObjectMeta, annotationInjectContainerName)
-
 	// once it's been determined that instrumentation is desired, none exists yet, and we know which instance it should talk to,
 	// we should inject the instrumentation.
 	modifiedPod := pod
+	if !hasLangSpecificContainers(ns.ObjectMeta, pod.ObjectMeta) {
+		return pm.injectInstrumentation(ctx, ns, modifiedPod, insts, targetContainers), nil
+	}
+	if targetContainers != "" {
+		return pod, fmt.Errorf("cannot specify both container-names and a language-specific conatiner-names")
+	}
+	return pm.mutateLangSpecificContainers(ctx, ns, modifiedPod, insts)
+}
+
+func (pm *instPodMutator) mutateLangSpecificContainers(ctx context.Context, ns corev1.Namespace, modifiedPod corev1.Pod, insts languageInstrumentations) (corev1.Pod, error) {
+	var targetJavaContainers = annotationValue(ns.ObjectMeta, modifiedPod.ObjectMeta, annotationInjectJavaContainerName)
+	var targetNodeJSContainers = annotationValue(ns.ObjectMeta, modifiedPod.ObjectMeta, annotationInjectNodeJSContainerName)
+	var targetPythonContainers = annotationValue(ns.ObjectMeta, modifiedPod.ObjectMeta, annotationInjectPythonContainerName)
+	var targetDotNetContainers = annotationValue(ns.ObjectMeta, modifiedPod.ObjectMeta, annotationInjectDotNetContainerName)
+	var targetSDKContainers = annotationValue(ns.ObjectMeta, modifiedPod.ObjectMeta, annotationInjectSDKContainerName)
+	if targetJavaContainers != "" {
+		modifiedPod = pm.injectInstrumentation(ctx, ns, modifiedPod, languageInstrumentations{Java: insts.Java}, targetJavaContainers)
+	}
+	if targetNodeJSContainers != "" {
+		modifiedPod = pm.injectInstrumentation(ctx, ns, modifiedPod, languageInstrumentations{NodeJS: insts.NodeJS}, targetNodeJSContainers)
+	}
+	if targetPythonContainers != "" {
+		modifiedPod = pm.injectInstrumentation(ctx, ns, modifiedPod, languageInstrumentations{Python: insts.Python}, targetPythonContainers)
+	}
+	if targetDotNetContainers != "" {
+		modifiedPod = pm.injectInstrumentation(ctx, ns, modifiedPod, languageInstrumentations{DotNet: insts.DotNet}, targetDotNetContainers)
+	}
+	if targetSDKContainers != "" {
+		modifiedPod = pm.injectInstrumentation(ctx, ns, modifiedPod, languageInstrumentations{Sdk: insts.Sdk}, targetSDKContainers)
+	}
+	return modifiedPod, nil
+}
+
+func (pm *instPodMutator) injectInstrumentation(ctx context.Context, ns corev1.Namespace, modifiedPod corev1.Pod, insts languageInstrumentations, targetContainers string) corev1.Pod {
 	for _, currentContainer := range strings.Split(targetContainers, ",") {
 		modifiedPod = pm.sdkInjector.inject(ctx, insts, ns, modifiedPod, strings.TrimSpace(currentContainer))
 	}
-
-	return modifiedPod, nil
+	return modifiedPod
 }
 
 func (pm *instPodMutator) getInstrumentationInstance(ctx context.Context, ns corev1.Namespace, pod corev1.Pod, instAnnotation string) (*v1alpha1.Instrumentation, error) {
