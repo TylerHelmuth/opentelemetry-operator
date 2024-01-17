@@ -51,11 +51,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update version
+      - name: Update 1.x version
         env:
           VERSION: ${{ needs.check-versions.outputs.latest-version }}
+        if: ${{ startsWith(needs.check-versions.outputs.latest-version, "1" }}
         run: |
           echo $VERSION > autoinstrumentation/java/version.txt
+
+      - name: Update 2.x version
+        env:
+          VERSION: ${{ needs.check-versions.outputs.latest-version }}
+        if: ${{ startsWith(needs.check-versions.outputs.latest-version, "2" }}
+        run: |
+          echo $VERSION > autoinstrumentation/java/2x-version.txt
 
       - name: Use CLA approved github bot
         run: |

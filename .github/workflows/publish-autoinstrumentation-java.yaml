@@ -19,15 +19,26 @@ concurrency:
 
 
 jobs:
-  publish:
+  get-versions:
     runs-on: ubuntu-22.04
-
+    outputs:
+      VERSION: ${{ env.VERSION }}
+      VERSION2: ${{ env.VERSION2 }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Read version
         run: echo "VERSION=$(cat autoinstrumentation/java/version.txt)" >> $GITHUB_ENV
+      - name: Read version2
+        run: echo "VERSION2=$(cat autoinstrumentation/java/2x-version.txt)" >> $GITHUB_ENV
 
+  publish:
+    runs-on: ubuntu-22.04
+    needs: get-versions
+    strategy:
+      matrix:
+        version: ["${{ needs.compute.outputs.VERSION }}", "${{ needs.compute.outputs.VERSION2 }}"]
+    steps:
+      - uses: actions/checkout@v4
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -36,7 +47,7 @@ jobs:
             otel/autoinstrumentation-java
             ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java
           tags: |
-            type=match,pattern=v(.*),group=1,value=v${{ env.VERSION }}
+            type=match,pattern=v(.*),group=1,value=v${{ matrix.version }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -73,7 +84,7 @@ jobs:
           context: autoinstrumentation/java
           platforms: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
           push: ${{ github.event_name == 'push' }}
-          build-args: version=${{ env.VERSION }}
+          build-args: version=${{ matrix.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
